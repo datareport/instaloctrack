@@ -62,6 +62,7 @@
   Continents Stats
   <div id='piechart'></div>
   Countries Stats
+  <div id='barchart'></div>
 
   <script>
 
@@ -114,7 +115,6 @@
     var piechart = c3.generate({
       bindto: '#piechart',
       data: {
-        // iris data from R
         columns:
           continents,
         type: 'pie',
@@ -123,6 +123,19 @@
         onmouseout: function (d, i) { console.log("onmouseout", d, i); }
       }
     });
+
+    var barchart = c3.generate({
+      bindto: '#barchart',
+      data: {
+        columns:
+          countrycodes,
+        type: 'bar',
+        onclick: function (d, i) { console.log("onclick", d, i); },
+        onmouseover: function (d, i) { console.log("onmouseover", d, i); },
+        onmouseout: function (d, i) { console.log("onmouseout", d, i); }
+      }
+    });
+
 
     function is_correct(value) {
       return value != 'Error'

@@ -1,5 +1,5 @@
+pycountry
+pycountry_convert
 selenium
 requests
-asyncio 
 jinja2
-argparse

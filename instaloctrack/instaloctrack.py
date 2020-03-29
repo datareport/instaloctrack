@@ -7,7 +7,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import jinja2
-import pycountry_convert as pc
+import pycountry
+import pycountry_convert
 import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -275,21 +276,33 @@ def stats(links_locations_and_timestamps):
         x[1].get(" country_code")[1:] for x in links_locations_and_timestamps
     ]
 
+    continents = {
+        'NA': 'North America',
+        'SA': 'South America',
+        'AS': 'Asia',
+        'OC': 'Australia',
+        'AF': 'Africa',
+        'EU': 'Europe',
+    }
+
     for countrycode in countrycodes:
-        if countrycode in countrycodes_dict:
-            countrycodes_dict[countrycode] += 1
+        country = pycountry.countries.get(alpha_2=countrycode).name
+
+        if country in countrycodes_dict:
+            countrycodes_dict[country] += 1
         else:
-            countrycodes_dict.update({countrycode: 1})
+            countrycodes_dict.update({country: 1})
 
         try:
-            continent = pc.country_alpha2_to_continent_code(countrycode)
+            continent = continents.get(
+                pycountry_convert.country_alpha2_to_continent_code(
+                    countrycode))
+            if continent in continents_dict:
+                continents_dict[continent] += 1
+            else:
+                continents_dict.update({continent: 1})
         except:
             pass
-        if continent in continents_dict:
-            continents_dict[continent] += 1
-        else:
-            continents_dict.update({continent: 1})
-
     return (countrycodes_dict, continents_dict)
 
 
