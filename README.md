@@ -1,5 +1,7 @@
 # Insta LocTrack
 
+TL;DR : [video of the project](https://www.youtube.com/watch?v=XVouSOwRDGE)
+
 ## Goal of the project
 The goal of this project is to collect all the locations linked to the photos of an Instagram profile in order to place them on a map.
 
