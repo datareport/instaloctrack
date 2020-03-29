@@ -10,6 +10,7 @@ import jinja2
 import pycountry
 import pycountry_convert
 import requests
+from colorama import Fore
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -95,10 +96,7 @@ def launch_browser(option):
 def login(args, browser, account, password):
     """Login to the Instagram account"""
     try:
-        print(
-            "Logging in with " + account + "'s Instagram account ...",
-            end="\r",
-        )
+        print("Logging in with " + account + "'s Instagram account ...", )
         browser.get("https://www.instagram.com/accounts/login/")
         time.sleep(1)  #find element won't work if this is removed
 
@@ -109,6 +107,7 @@ def login(args, browser, account, password):
         login.submit()
         time.sleep(2)
         browser.get("https://www.instagram.com/" + args.target_account)
+        print("Logged in:" + Fore.GREEN + " OK")
         return True
     except:
         return False
@@ -129,10 +128,10 @@ def fetch_urls(browser, number_publications):
             n_scrolls
     ):  # collecting all the pictures links in order to see which ones contains location data
         print(
-            "Scrolling the Instagram target profile, fetching pictures URLs ..."
+            Fore.WHITE +
+            "Scrolling the Instagram target profile, scraping pictures URLs ..."
             + str(100 * i // n_scrolls) + "% of the profile scrolled ",
-            end="\r",
-        )
+            end="\r")
         browser.execute_script(
             "window.scrollTo(0, document.body.scrollHeight)")
         links.extend(re.findall("/p/([^/]+)/", browser.page_source))
@@ -140,6 +139,7 @@ def fetch_urls(browser, number_publications):
             1
         )  # dont change this, otherwise some scrolls won't be effective and all the data won't be scrapped
 
+    print(Fore.WHITE + "\nPictures links collected: " + Fore.GREEN + "OK")
     return list(dict.fromkeys(links))  # remove duplicates
 
 
@@ -172,12 +172,10 @@ def fetch_locations_and_timestamps(links, requests_session=None):
     links_locations_timestamps = []
     count = 0
     max_wrk = 50
-    print(
-        "Fetching Locations and Timestamps on each picture ... " +
-        str(len(links)) + " links processed asynchronously by a pool of " +
-        str(max_wrk),
-        end="\r",
-    )
+    print(Fore.WHITE + "Scraping Locations and Timestamps on each picture: " +
+          str(len(links)) + " links processed asynchronously by a pool of " +
+          str(max_wrk) + " workers",
+          flush=True)
     executor = ThreadPoolExecutor(
         max_workers=max_wrk
     )  # didnt find any information about Instagram / Facebook Usage Policy ... people on stackoverflow say there's no limit if you're not using any API so ... ¯\_(ツ)_/¯
@@ -209,13 +207,7 @@ def fetch_locations_and_timestamps(links, requests_session=None):
                 location_timestamp[0],
                 location_timestamp[1],
             ])
-
-        print(
-            "Parsing location data ... " + str(i) + "/" + str(number_locs) +
-            " links processed... " + " Found location data on " + str(count) +
-            " links",
-            end="\r",
-        )
+    print("Location Data Scraping :" + Fore.GREEN + "OK")
     return links_locations_timestamps
 
 
@@ -244,20 +236,21 @@ def geocode_all(links_locations_and_timestamps):
     errors = 0
     cnt = 1
     gps_coordinates = []
+    location_number = str(len(links_locations_and_timestamps))
 
     for location in links_locations_and_timestamps:
-        print(
-            "Fetching GPS Coordinates ... : Processing location number " +
-            str(cnt) + " out of " + str(len(links_locations_and_timestamps)) +
-            " - Number of errors:" + str(errors),
-            end="\r",
-        )
+        print(Fore.WHITE +
+              "Geocoding Locations ... : Processing location number " +
+              str(cnt) + " out of " + location_number +
+              " - Number of errors:" + Fore.RED + str(errors),
+              end="\r")
         try:
             tmp_geoloc = geocode(location[1])
             gps_coordinates.append(
                 [tmp_geoloc[0]["lat"], tmp_geoloc[0]["lon"]])
         except:
-            print("An exception occurred for: " + str(location[1]))
+            print("An exception occurred for: " + Fore.RED + str(location[1]) +
+                  Fore.WHITE)
             errors += 1
             gps_coordinates.append("Error")
         time.sleep(
@@ -265,6 +258,12 @@ def geocode_all(links_locations_and_timestamps):
         )  # Respect Nominatim's Usage Policy! (1 request per sec max) https://operations.osmfoundation.org/policies/nominatim/
         cnt += 1
 
+    if errors == 0:
+        print(Fore.WHITE + "\nGeocoding:" + Fore.GREEN + " OK, 100% Correct")
+    else:
+        print(Fore.WHITE + "\nGeocoding: " + Fore.GREEN + "DONE " +
+              Fore.WHITE + "-" + Fore.YELLOW + str(errors) +
+              " Errors occurred out of " + location_number + " locations.")
     return gps_coordinates
 
 
@@ -286,12 +285,15 @@ def stats(links_locations_and_timestamps):
     }
 
     for countrycode in countrycodes:
-        country = pycountry.countries.get(alpha_2=countrycode).name
+        try:
+            country = pycountry.countries.get(alpha_2=countrycode).name
 
-        if country in countrycodes_dict:
-            countrycodes_dict[country] += 1
-        else:
-            countrycodes_dict.update({country: 1})
+            if country in countrycodes_dict:
+                countrycodes_dict[country] += 1
+            else:
+                countrycodes_dict.update({country: 1})
+        except:
+            pass
 
         try:
             continent = continents.get(
@@ -342,10 +344,10 @@ def export_data(args, links_locations_and_timestamps, gps_coordinates):
             "output/" + args.target_account + "/" + args.target_account +
             "_instaloctrack_errors.json", "w") as filehandle:
         json.dump(errors, filehandle)
-    print(
-        "Location names, timestamps, and GPS Coordinates were written to : output/"
-        + args.target_account + "/" + args.target_account +
-        "_instaloctrack_data.json")
+    print(Fore.WHITE +
+          "Location names, timestamps, and GPS Coordinates were written to :" +
+          Fore.GREEN + " output/" + args.target_account + "/" +
+          args.target_account + "_instaloctrack_data.json")
 
     return len(json_dump), len(errors)
 
@@ -375,9 +377,9 @@ def map_locations(args, number_publications, numbers,
             "_instaloctrack_map.html", "w") as f:
         f.write(outputText)
         f.close()
-        print("Map with all the markers was written to: output/" +
-              args.target_account + "/" + args.target_account +
-              "_instaloctrack_map.html")
+        print(Fore.WHITE + "Map with all the markers was written to:" +
+              Fore.GREEN + " output/" + args.target_account + "/" +
+              args.target_account + "_instaloctrack_map.html")
 
 
 def main():
