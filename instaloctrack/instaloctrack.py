@@ -108,21 +108,24 @@ def launch_browser(option):
 
 def login(args, browser, account, password, logger):
     """Login to the Instagram account"""
-    try:
-        logger.info("Logging in with " + account + "'s Instagram account ...")
-        browser.get("https://www.instagram.com/accounts/login/")
-        time.sleep(1)  #find element won't work if this is removed
+    logger.info(f"Logging in with {account}'s Instagram account ...")
 
-        login = browser.find_element_by_xpath("//input[@name='username']")
-        passwd = browser.find_element_by_xpath("//input[@name='password']")
-        login.send_keys(account)
-        passwd.send_keys(password)
-        login.submit()
-        time.sleep(2)
-        browser.get("https://www.instagram.com/" + args.target_account)
-        logger.info("Logged in successfully")
+    browser.get("https://www.instagram.com/accounts/login/")
+    time.sleep(1)  #find element won't work if this is removed
+
+    login = browser.find_element_by_xpath("//input[@name='username']")
+    passwd = browser.find_element_by_xpath("//input[@name='password']")
+    login.send_keys(account)
+    passwd.send_keys(password)
+    login.submit()
+    time.sleep(2)
+
+    browser.get(f"https://www.instagram.com/{account}/saved/?hl=fr")
+
+    if not "Page introuvable" in browser.page_source:
         return True
-    except:
+    else:
+        logger.setLevel(logging.ERROR)
         logger.error("Could not log into " + account +
                      "'s Instagram account. ")
         return False
@@ -142,9 +145,7 @@ def fetch_urls(browser, number_publications, logger):
     logger.info(
         "Scrolling the Instagram target profile, scraping pictures URLs ... ")
 
-    pbar = enlighten.Counter(total=n_scrolls,
-                             desc='Scrolling',
-                             unit='scrolls')
+    pbar = enlighten.Counter(total=n_scrolls, desc='Scrolling', unit='scrolls')
 
     for _ in range(
             n_scrolls
@@ -280,11 +281,11 @@ def geocode_all(links_locations_and_timestamps, logger):
         cnt += 1
 
     if errors == 0:
-        logger.info("Geocoding:" + " OK, 100% Correct")
+        logger.info("Geocoding: OK, 100% Correct")
     else:
         percent_errors = (errors // location_number) * 100
 
-        logger.warning("Geocoding:" + " DONE with " + str(percent_errors) + "%" +
+        logger.warning("Geocoding: DONE with " + str(percent_errors) + "%" +
                        "of errors: " + str(errors) + " out of " +
                        str(location_number))
     return gps_coordinates
@@ -445,3 +446,7 @@ def main():
     map_locations(args, number_publications, numbers,
                   links_locations_and_timestamps, gps_coordinates,
                   countrycodes_for_js, continents_for_js, logger)
+
+
+if __name__ == "__main__":
+    main()
