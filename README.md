@@ -96,7 +96,7 @@ The JSON data dump (just a part of it to show the format for a given location):
 
 * Cleaner code :D 
 * Use beautifulsoup instead of regex parsing
-* Use a logger instead of printing 
+* Remove weird blank space caused by progress bar
 * Check password correctness with -p flag
 * Correct ISO Code for some countries: Nominatim doesn't considers French Polynesia's ISO  (or DOM TOM) code as valid for some reason ¯\\_(ツ)_/¯ / Issue opened on osm-search
 * Provide statistics about the location data (most visited place, diagrams ...)
