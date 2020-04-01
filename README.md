@@ -1,4 +1,4 @@
-# Insta LocTrack
+#instaloctrack
 
 TL;DR : [video of the project](https://www.youtube.com/watch?v=XVouSOwRDGE)
 
@@ -57,11 +57,12 @@ Also, the data collected by the script (location names, timestamps, GPS coordina
 
 ## Example
 
-As an example, here's the output on the former French President's Instagram profile, [@fhollande](https://www.instagram.com/fhollande/?hl=fr) :
+As an example, here's the output on the former French President's Instagram profile, [@fhollande](https://www.instagram.com/fhollande/?hl=fr):
 
 ![Map of @fhollande's locations on Instagram](https://i.imgur.com/LPulybM.png)
 
 The Heatmap:
+
 ![Heatmap of @fhollande's locations on Instagram](https://i.imgur.com/OBrTTdp.png)
 
 Information available when clicking on a marker:
