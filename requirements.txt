@@ -4,3 +4,4 @@ selenium
 requests
 jinja2
 coloredlogs
+enlighten
