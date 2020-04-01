@@ -4,13 +4,16 @@ import json
 import os
 import re
 import time
+import logging
+import coloredlogs
+import sys
 from concurrent.futures import ThreadPoolExecutor
 
 import jinja2
+import enlighten
 import pycountry
 import pycountry_convert
 import requests
-from colorama import Fore
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -56,6 +59,16 @@ def parse_args():
     return parser.parse_args()
 
 
+def init_logger():
+    logger = logging.getLogger(__name__)
+    coloredlogs.install(level='INFO',
+                        logger=logger,
+                        fmt='[+] %(asctime)s - %(message)s',
+                        stream=sys.stdout)
+
+    return logger
+
+
 def selenium_to_requests_session(browser):
     selenium_cookies = browser.get_cookies()
 
@@ -93,10 +106,10 @@ def launch_browser(option):
         return webdriver.Chrome("/usr/bin/chromedriver")
 
 
-def login(args, browser, account, password):
+def login(args, browser, account, password, logger):
     """Login to the Instagram account"""
     try:
-        print("Logging in with " + account + "'s Instagram account ...", )
+        logger.info("Logging in with " + account + "'s Instagram account ...")
         browser.get("https://www.instagram.com/accounts/login/")
         time.sleep(1)  #find element won't work if this is removed
 
@@ -107,39 +120,43 @@ def login(args, browser, account, password):
         login.submit()
         time.sleep(2)
         browser.get("https://www.instagram.com/" + args.target_account)
-        print("Logged in:" + Fore.GREEN + " OK")
+        logger.info("Logged in successfully")
         return True
     except:
+        logger.error("Could not log into " + account +
+                     "'s Instagram account. ")
         return False
 
 
-def scrolls(publications, ):
+def scrolls(publications):
     """Number of scrolls required to catch all the pictures links"""
     return (int(publications)) // 11
 
 
-def fetch_urls(browser, number_publications):
+def fetch_urls(browser, number_publications, logger):
     """Catch all the pictures links of the Instagram profile"""
     links = []
     links.extend(re.findall("/p/([^/]+)/", browser.page_source))
     n_scrolls = scrolls(number_publications)
 
-    for i in range(
+    logger.info(
+        "Scrolling the Instagram target profile, scraping pictures URLs ... ")
+
+    pbar = enlighten.Counter(total=n_scrolls,
+                             desc='Scrolling',
+                             unit='scrolls')
+
+    for _ in range(
             n_scrolls
     ):  # collecting all the pictures links in order to see which ones contains location data
-        print(
-            Fore.WHITE +
-            "Scrolling the Instagram target profile, scraping pictures URLs ..."
-            + str(100 * i // n_scrolls) + "% of the profile scrolled ",
-            end="\r")
+        pbar.update()
         browser.execute_script(
             "window.scrollTo(0, document.body.scrollHeight)")
         links.extend(re.findall("/p/([^/]+)/", browser.page_source))
         time.sleep(
             1
         )  # dont change this, otherwise some scrolls won't be effective and all the data won't be scrapped
-
-    print(Fore.WHITE + "\nPictures links collected: " + Fore.GREEN + "OK")
+    logger.info("Pictures links collected successfully")
     return list(dict.fromkeys(links))  # remove duplicates
 
 
@@ -167,15 +184,15 @@ def parse_location_timestamp(content):
         return None
 
 
-def fetch_locations_and_timestamps(links, requests_session=None):
+def fetch_locations_and_timestamps(links, logger, requests_session=None):
     """Catch all locations and timestamps asynchronously on a profile"""
     links_locations_timestamps = []
     count = 0
-    max_wrk = 50
-    print(Fore.WHITE + "Scraping Locations and Timestamps on each picture: " +
-          str(len(links)) + " links processed asynchronously by a pool of " +
-          str(max_wrk) + " workers",
-          flush=True)
+    max_wrk = len(links)
+
+    logger.info("Scraping Locations and Timestamps on each picture: " +
+                str(len(links)) + " links processed asynchronously")
+
     executor = ThreadPoolExecutor(
         max_workers=max_wrk
     )  # didnt find any information about Instagram / Facebook Usage Policy ... people on stackoverflow say there's no limit if you're not using any API so ... ¯\_(ツ)_/¯
@@ -207,7 +224,7 @@ def fetch_locations_and_timestamps(links, requests_session=None):
                 location_timestamp[0],
                 location_timestamp[1],
             ])
-    print("Location Data Scraping :" + Fore.GREEN + "OK")
+    logger.info("Location data scrapped successfully")
     return links_locations_timestamps
 
 
@@ -231,39 +248,45 @@ def geocode(location_dict):
     return requests.get(query + "&format=json&limit=1").json()
 
 
-def geocode_all(links_locations_and_timestamps):
+def geocode_all(links_locations_and_timestamps, logger):
     """Get the GPS coordinates of all the locations"""
     errors = 0
     cnt = 1
     gps_coordinates = []
-    location_number = str(len(links_locations_and_timestamps))
+    location_number = len(links_locations_and_timestamps)
+
+    pbar = enlighten.Counter(total=location_number,
+                             desc='Geocoding',
+                             unit='location',
+                             position=30)
+
+    pbar_errors = pbar.add_subcounter('yellow')
+    logger.info("Geocoding Locations ...")
 
     for location in links_locations_and_timestamps:
-        print(Fore.WHITE +
-              "Geocoding Locations ... : Processing location number " +
-              str(cnt) + " out of " + location_number +
-              " - Number of errors:" + Fore.RED + str(errors),
-              end="\r")
         try:
             tmp_geoloc = geocode(location[1])
             gps_coordinates.append(
                 [tmp_geoloc[0]["lat"], tmp_geoloc[0]["lon"]])
+            pbar.update()
         except:
-            print("An exception occurred for: " + Fore.RED + str(location[1]) +
-                  Fore.WHITE)
+            logger.warning("An exception occurred for: " + str(location[1]))
             errors += 1
             gps_coordinates.append("Error")
+            pbar_errors.update()
         time.sleep(
             1
         )  # Respect Nominatim's Usage Policy! (1 request per sec max) https://operations.osmfoundation.org/policies/nominatim/
         cnt += 1
 
     if errors == 0:
-        print(Fore.WHITE + "\nGeocoding:" + Fore.GREEN + " OK, 100% Correct")
+        logger.info("Geocoding:" + " OK, 100% Correct")
     else:
-        print(Fore.WHITE + "\nGeocoding: " + Fore.GREEN + "DONE " +
-              Fore.WHITE + "-" + Fore.YELLOW + str(errors) +
-              " Errors occurred out of " + location_number + " locations.")
+        percent_errors = (errors // location_number) * 100
+
+        logger.warning("Geocoding:" + " DONE with " + str(percent_errors) + "%" +
+                       "of errors: " + str(errors) + " out of " +
+                       str(location_number))
     return gps_coordinates
 
 
@@ -308,7 +331,7 @@ def stats(links_locations_and_timestamps):
     return (countrycodes_dict, continents_dict)
 
 
-def export_data(args, links_locations_and_timestamps, gps_coordinates):
+def export_data(args, links_locations_and_timestamps, gps_coordinates, logger):
     """Write to JSON all the data"""
 
     json_dump = []
@@ -344,17 +367,17 @@ def export_data(args, links_locations_and_timestamps, gps_coordinates):
             "output/" + args.target_account + "/" + args.target_account +
             "_instaloctrack_errors.json", "w") as filehandle:
         json.dump(errors, filehandle)
-    print(Fore.WHITE +
-          "Location names, timestamps, and GPS Coordinates were written to :" +
-          Fore.GREEN + " output/" + args.target_account + "/" +
-          args.target_account + "_instaloctrack_data.json")
+    logger.info(
+        "Picture links, Location names, timestamps, and GPS Coordinates were written to : output/"
+        + args.target_account + "/" + args.target_account +
+        "_instaloctrack_data.json")
 
     return len(json_dump), len(errors)
 
 
 def map_locations(args, number_publications, numbers,
                   links_locations_and_timestamps, gps_coordinates,
-                  countrycodes_for_js, continents_for_js):
+                  countrycodes_for_js, continents_for_js, logger):
     """Pin all the locations on on an interactive map"""
     templateLoader = jinja2.FileSystemLoader(searchpath="./")
     templateEnv = jinja2.Environment(loader=templateLoader)
@@ -377,9 +400,10 @@ def map_locations(args, number_publications, numbers,
             "_instaloctrack_map.html", "w") as f:
         f.write(outputText)
         f.close()
-        print(Fore.WHITE + "Map with all the markers was written to:" +
-              Fore.GREEN + " output/" + args.target_account + "/" +
-              args.target_account + "_instaloctrack_map.html")
+        logger.info(
+            "Interactive pinned map, Heatmap, and Statistics are available in: output/"
+            + args.target_account + "/" + args.target_account +
+            "_instaloctrack_map.html")
 
 
 def main():
@@ -387,36 +411,37 @@ def main():
     args = parse_args()
     browser = launch_browser(args.visual)
 
+    logger = init_logger()
+
     logged_in = False
 
     if args.login is not None and args.password is not None:
-        logged_in = login(args, browser, args.login, args.password)
+        logged_in = login(args, browser, args.login, args.password, logger)
+        if not logged_in:
+            exit()
 
     browser.get("https://www.instagram.com/" + args.target_account + "/?hl=fr")
 
     number_publications = re.search("([0-9]+)</span> publications",
                                     browser.page_source).group(1)
 
-    links = fetch_urls(browser, number_publications)
+    links = fetch_urls(browser, number_publications, logger)
+
     requests_session = None
     if logged_in:
         requests_session = selenium_to_requests_session(browser)
     browser.quit()
     links_locations_and_timestamps = fetch_locations_and_timestamps(
-        links, requests_session)
+        links, logger, requests_session)
 
-    gps_coordinates = geocode_all(links_locations_and_timestamps)
+    gps_coordinates = geocode_all(links_locations_and_timestamps, logger)
 
     numbers = export_data(args, links_locations_and_timestamps,
-                          gps_coordinates)
+                          gps_coordinates, logger)
 
     (countrycodes, continents) = stats(links_locations_and_timestamps)
     countrycodes_for_js = [[k, v] for k, v in countrycodes.items()]
     continents_for_js = [[k, v] for k, v in continents.items()]
     map_locations(args, number_publications, numbers,
                   links_locations_and_timestamps, gps_coordinates,
-                  countrycodes_for_js, continents_for_js)
-
-
-if __name__ == "__main__":
-    main()
+                  countrycodes_for_js, continents_for_js, logger)
