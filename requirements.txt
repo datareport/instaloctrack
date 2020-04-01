@@ -3,4 +3,4 @@ pycountry_convert
 selenium
 requests
 jinja2
-colorama
+coloredlogs
