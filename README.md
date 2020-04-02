@@ -96,6 +96,7 @@ The JSON data dump (just a part of it to show the format for a given location):
 ## Possible Improvements
 
 * Cleaner code :D 
+* Factorize the geocoding function which is waaay too long and cryptic
 * Use beautifulsoup instead of regex parsing
 * Remove weird blank space caused by progress bar
 * Correct ISO Code for some countries: Nominatim doesn't considers French Polynesia's ISO  (or DOM TOM) code as valid for some reason ¯\\_(ツ)_/¯ / Issue opened on osm-search
