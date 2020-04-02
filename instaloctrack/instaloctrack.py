@@ -20,7 +20,7 @@ from selenium.webdriver.chrome.service import Service
 
 
 def parse_args():
-    """Parse console arguments"""
+    """Parse console arguments."""
     parser = argparse.ArgumentParser(
         description=
         "Instagram location data gathering tool.  Usage: python3 InstaLocTrack.py -t <target_account>",
@@ -73,6 +73,7 @@ def print_banner():
 
 
 def init_logger():
+    """Initialize the logger of the program. """
     logger = logging.getLogger(__name__)
     coloredlogs.install(level='INFO',
                         logger=logger,
@@ -83,6 +84,7 @@ def init_logger():
 
 
 def selenium_to_requests_session(browser):
+    """Transfer selenium's session cookies to requests session."""
     selenium_cookies = browser.get_cookies()
 
     requests_session = requests.Session()
@@ -94,7 +96,7 @@ def selenium_to_requests_session(browser):
 
 
 def resolve_special_chars(location):
-    """Handle special characters that aren't correctly encoded"""
+    """Handle special characters that aren't correctly encoded."""
     matches = re.findall("(u0[\w+]{3}|&#x27;)", location)
     if matches != []:
         for special_char in matches:
@@ -109,7 +111,7 @@ def resolve_special_chars(location):
 
 
 def launch_browser(option):
-    """Launch the ChromeDriver with specific options"""
+    """Launch the ChromeDriver with specific options."""
     if not option:
         chrome_options = Options()
         chrome_options.add_argument("--headless")
@@ -120,7 +122,7 @@ def launch_browser(option):
 
 
 def login(args, browser, account, password, logger):
-    """Login to the Instagram account"""
+    """Login to the Instagram account."""
     logger.info(f"Logging in with {account}'s Instagram account ...")
 
     browser.get("https://www.instagram.com/accounts/login/")
@@ -145,12 +147,12 @@ def login(args, browser, account, password, logger):
 
 
 def scrolls(publications):
-    """Number of scrolls required to catch all the pictures links"""
+    """Number of scrolls required to catch all the pictures links."""
     return (int(publications)) // 11
 
 
 def fetch_urls(browser, number_publications, logger):
-    """Catch all the pictures links of the Instagram profile"""
+    """Catch all the pictures links of the Instagram profile."""
     links = []
     links.extend(re.findall("/p/([^/]+)/", browser.page_source))
     n_scrolls = scrolls(number_publications)
@@ -175,7 +177,7 @@ def fetch_urls(browser, number_publications, logger):
 
 
 def parse_location_timestamp(content):
-    """Catch the location data and the timestamps in the page source"""
+    """Catch the location data and the timestamps in the page source."""
     try:
         location = dict(
             resolve_special_chars(x).split(':')
@@ -199,7 +201,7 @@ def parse_location_timestamp(content):
 
 
 def fetch_locations_and_timestamps(links, logger, requests_session=None):
-    """Catch all locations and timestamps asynchronously on a profile"""
+    """Catch all locations and timestamps asynchronously on a profile."""
     links_locations_timestamps = []
     count = 0
     max_wrk = len(links)
@@ -243,13 +245,14 @@ def fetch_locations_and_timestamps(links, logger, requests_session=None):
 
 
 def geocode_by_name(name):
+    """Get the GPS coordinates of a location by its name field."""
     return requests.get(
         f"https://nominatim.openstreetmap.org/search?q={name}&format=json&limit=1"
     ).json()
 
 
 def geocode(location_dict):
-    """Get the GPS coordinates of a location"""
+    """Get the GPS coordinates of a location."""
     query = "https://nominatim.openstreetmap.org/search?"
 
     street = location_dict.get('street_address')[1:]
@@ -268,7 +271,7 @@ def geocode(location_dict):
 
 
 def geocode_all(links_locations_and_timestamps, logger):
-    """Get the GPS coordinates of all the locations"""
+    """Get the GPS coordinates of all the locations."""
     errors = 0
     track_errors = []
     cnt = 0
@@ -335,7 +338,7 @@ def geocode_all(links_locations_and_timestamps, logger):
 
 
 def stats(links_locations_and_timestamps):
-    """Compute some statistics about the user's location"""
+    """Compute some statistics about the user's location."""
     countrycodes_dict = dict()
     continents_dict = dict()
 
@@ -377,7 +380,7 @@ def stats(links_locations_and_timestamps):
 
 
 def export_data(args, links_locations_and_timestamps, gps_coordinates, logger):
-    """Write to JSON all the data"""
+    """Write to JSON all the data retrieved."""
 
     json_dump = []
     errors = []
@@ -423,7 +426,7 @@ def export_data(args, links_locations_and_timestamps, gps_coordinates, logger):
 def map_locations(args, number_publications, numbers,
                   links_locations_and_timestamps, gps_coordinates,
                   countrycodes_for_js, continents_for_js, logger):
-    """Pin all the locations on on an interactive map"""
+    """Pin all the locations on on an interactive map."""
     templateLoader = jinja2.FileSystemLoader(searchpath="./")
     templateEnv = jinja2.Environment(loader=templateLoader)
     template = templateEnv.get_template("template.html")
