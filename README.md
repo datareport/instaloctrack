@@ -10,7 +10,7 @@ I doesn't use Instagram's API since Instagram deprecated its location functional
 ## requirements
 
 sudo apt install chromium-chromedriver &&
-sudo pip install -r requirements
+sudo pip3 install -r requirements
 
 ## installation
 
