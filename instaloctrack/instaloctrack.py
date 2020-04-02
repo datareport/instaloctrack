@@ -294,7 +294,6 @@ def geocode_all(links_locations_and_timestamps, logger):
 
     logger.info("Correcting geocoding errors with another query ...")
     errors_solved = 0
-    print("track_errors: " + str(track_errors))
     for index in track_errors:
         try:
             tmp_geoloc = geocode_by_name(
