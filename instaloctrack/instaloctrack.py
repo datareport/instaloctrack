@@ -24,7 +24,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description=
         "Instagram location data gathering tool.  Usage: python3 InstaLocTrack.py -t <target_account>",
-        prog="InstaLocTrack")
+        prog="instaloctrack")
 
     parser.add_argument(
         "-t",
@@ -57,6 +57,19 @@ def parse_args():
     )
 
     return parser.parse_args()
+
+
+def print_banner():
+    banner = """
+                                        -------------------------------------------------------
+   ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄  | instaloctrack 1.0.0                                 |
+   █░░░░░░░░▀█▄▀▄▀██████░▀█▄▀▄▀██████░  |                                                     |
+   ░░░░░░░░░░░▀█▄█▄███▀░░░░▀█▄█▄███░░░  | A Python3 tool to scrape location data on Instagram.|
+                                        |                                                     |
+                                        | github.com/bernsteining/                            |                                                                                                  |
+                                        -------------------------------------------------------
+	 """
+    print(banner)
 
 
 def init_logger():
@@ -322,6 +335,7 @@ def geocode_all(links_locations_and_timestamps, logger):
 
 
 def stats(links_locations_and_timestamps):
+    """Compute some statistics about the user's location"""
     countrycodes_dict = dict()
     continents_dict = dict()
 
@@ -439,6 +453,7 @@ def map_locations(args, number_publications, numbers,
 
 def main():
 
+    print_banner()
     args = parse_args()
     browser = launch_browser(args.visual)
 
