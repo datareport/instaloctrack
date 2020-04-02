@@ -297,8 +297,6 @@ def geocode_all(links_locations_and_timestamps, logger):
     print("track_errors: " + str(track_errors))
     for index in track_errors:
         try:
-            print("index: " + str(index))
-            print("llt len: " + str(len(links_locations_and_timestamps)))
             tmp_geoloc = geocode_by_name(
                 links_locations_and_timestamps[index][1].get("name"))
             gps_coordinates[index] = [
