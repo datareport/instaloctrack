@@ -1,16 +1,16 @@
 import argparse
 import asyncio
 import json
+import logging
 import os
 import re
-import time
-import logging
-import coloredlogs
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 
-import jinja2
+import coloredlogs
 import enlighten
+import jinja2
 import pycountry
 import pycountry_convert
 import requests
@@ -229,30 +229,36 @@ def fetch_locations_and_timestamps(links, logger, requests_session=None):
     return links_locations_timestamps
 
 
+def geocode_by_name(name):
+    return requests.get(
+        f"https://nominatim.openstreetmap.org/search?q={name}&format=json&limit=1"
+    ).json()
+
+
 def geocode(location_dict):
     """Get the GPS coordinates of a location"""
-    query = "https://nominatim.openstreetmap.org/search"
+    query = "https://nominatim.openstreetmap.org/search?"
+
+    street = location_dict.get('street_address')[1:]
 
     if location_dict.get(' country_code') != " ":  #ISO 3166-1alpha2 code
         query += "countrycodes=" + location_dict.get(' country_code')[1:] + "&"
+    if street != "" and len(street.split()) >= 3:
+        query += "street=" + street + "&"
     if location_dict.get(' city_name') != " ":
-        query += "?city=" + location_dict.get(' city_name')[1:] + "&"
-        # if location_dict.get(" zip_code") != "":
-        #     query += "postalcode=" + location_dict(" zip_code")[1:] + "&"
+        query += "city=" + location_dict.get(' city_name')[1:] + "&"
 
     else:
-        query += "?q=" + location_dict.get("name").replace(
-            "-", " ") + "&"  # second try?
-        if location_dict.get('street_address') != " ":
-            query += "?street=" + location_dict.get('street_address') + "&"
+        query += "q=" + location_dict.get("name").replace("-", " ") + "&"
 
-    return requests.get(query + "&format=json&limit=1").json()
+    return requests.get(query + "format=json&limit=1").json()
 
 
 def geocode_all(links_locations_and_timestamps, logger):
     """Get the GPS coordinates of all the locations"""
     errors = 0
-    cnt = 1
+    track_errors = []
+    cnt = 0
     gps_coordinates = []
     location_number = len(links_locations_and_timestamps)
 
@@ -273,6 +279,7 @@ def geocode_all(links_locations_and_timestamps, logger):
         except:
             logger.warning("An exception occurred for: " + str(location[1]))
             errors += 1
+            track_errors.append(cnt)
             gps_coordinates.append("Error")
             pbar_errors.update()
         time.sleep(
@@ -280,13 +287,39 @@ def geocode_all(links_locations_and_timestamps, logger):
         )  # Respect Nominatim's Usage Policy! (1 request per sec max) https://operations.osmfoundation.org/policies/nominatim/
         cnt += 1
 
+    pbar_solve = enlighten.Counter(total=errors,
+                                   desc='Correcting Errors',
+                                   unit='location',
+                                   position=30)
+
+    logger.info("Correcting geocoding errors with another query ...")
+    errors_solved = 0
+    print("track_errors: " + str(track_errors))
+    for index in track_errors:
+        try:
+            print("index: " + str(index))
+            print("llt len: " + str(len(links_locations_and_timestamps)))
+            tmp_geoloc = geocode_by_name(
+                links_locations_and_timestamps[index][1].get("name"))
+            gps_coordinates[index] = [
+                tmp_geoloc[0]["lat"], tmp_geoloc[0]["lon"]
+            ]
+            errors_solved += 1
+        except:
+            logger.warning("Still could not geocode: " +
+                           str(links_locations_and_timestamps[index][1]))
+        time.sleep(
+            1
+        )  # Respect Nominatim's Usage Policy! (1 request per sec max) https://operations.osmfoundation.org/policies/nominatim/
+        pbar_solve.update()
+    errors = errors - errors_solved
     if errors == 0:
         logger.info("Geocoding: OK, 100% Correct")
     else:
         percent_errors = (errors // location_number) * 100
 
         logger.warning("Geocoding: DONE with " + str(percent_errors) + "%" +
-                       "of errors: " + str(errors) + " out of " +
+                       " of errors: " + str(errors) + " out of " +
                        str(location_number))
     return gps_coordinates
 
