@@ -15,17 +15,17 @@ sudo pip3 install -r requirements
 ## installation
 
 ```
-git clone https://github.com/bernsteining/InstaLocTrack
-cd InstaLocTrack
+git clone https://github.com/bernsteining/instaloctrack
+cd instaloctrack
 pip3 install .
 ```
 
 ## Usage
 
     instaloctrack -h
-    usage: InstaLocTrack [-h] [-t TARGET_ACCOUNT] [-l LOGIN] [-p PASSWORD] [-v]
+    usage: instaloctrack [-h] [-t TARGET_ACCOUNT] [-l LOGIN] [-p PASSWORD] [-v]
     
-    Instagram location data gathering tool. Usage: python3 InstaLocTrack.py -t <target_account>
+    Instagram location data gathering tool. Usage: python3 instaloctrack.py -t <target_account>
     
     optional arguments:
       -h, --help            show this help message and exit

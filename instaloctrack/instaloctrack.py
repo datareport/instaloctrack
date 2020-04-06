@@ -23,7 +23,7 @@ def parse_args():
     """Parse console arguments."""
     parser = argparse.ArgumentParser(
         description=
-        "Instagram location data gathering tool.  Usage: python3 InstaLocTrack.py -t <target_account>",
+        "Instagram location data gathering tool.  Usage: python3instaloctrack.py -t <target_account>",
         prog="instaloctrack")
 
     parser.add_argument(
