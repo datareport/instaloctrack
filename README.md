@@ -8,7 +8,7 @@ The goal of this project is to collect all the locations linked to the photos of
 I doesn't use Instagram's API since Instagram deprecated its location functionality in 2018, and also because I wanted to play with Selenium and Chromedriver to make my own scraper.
 
 ## requirements
-
+python instaLocTrack.py -t auvergnerhonealpes.tourisme -l user -p xxxxx
 sudo apt install chromium-chromedriver &&
 sudo pip3 install -r requirements
 
