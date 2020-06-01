@@ -115,10 +115,10 @@ def launch_browser(option):
     if not option:
         chrome_options = Options()
         chrome_options.add_argument("--headless")
-        return webdriver.Chrome("/usr/bin/chromedriver",
+        return webdriver.Chrome("C:\\chromedriver.exe",
                                 chrome_options=chrome_options)
     else:
-        return webdriver.Chrome("/usr/bin/chromedriver")
+        return webdriver.Chrome("C:\\chromedriver.exe")
 
 
 def login(args, browser, account, password, logger):
