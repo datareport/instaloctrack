@@ -9,8 +9,6 @@ I doesn't use Instagram's API since Instagram deprecated its location functional
 
 ## requirements
 python instaLocTrack.py -t auvergnerhonealpes.tourisme -l user -p xxxxx
-sudo apt install chromium-chromedriver &&
-sudo pip3 install -r requirements
 
 ## installation
 
@@ -18,6 +16,7 @@ sudo pip3 install -r requirements
 git clone https://github.com/bernsteining/instaloctrack
 cd instaloctrack
 pip3 install .
+python instaLocTrack.py -t auvergnerhonealpes.tourisme -l user -p xxxxx
 ```
 
 ## Usage
